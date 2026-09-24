@@ -1,0 +1,80 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute remote ssh commands to deploy
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: OPENROUTER_API_KEY
+          script: |
+            set -e
+
+            mkdir -p /data/code/demo3.starandstream.com
+            cd /data/code/demo3.starandstream.com
+
+            if [ ! -d ".git" ]; then
+                git clone git@github.com:artisenalcode/demo3-voice.git .
+            fi
+
+            git merge --abort 2>/dev/null || true
+            git fetch --prune origin main
+            git reset --hard origin/main
+            git clean -fd
+
+            # The OpenRouter key comes from GitHub Secrets. Write it to a file
+            # only this user can read; podman loads it with --env-file, so it
+            # never lands in the image, the repo or the logs.
+            if [ -z "$OPENROUTER_API_KEY" ]; then
+                echo "OPENROUTER_API_KEY secret is missing" >&2
+                exit 1
+            fi
+            mkdir -p /data/env
+            ( umask 077 && printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY" > /data/env/demo3.env )
+
+            # Static site: no build step, just sync public/.
+            mkdir -p /data/nginx/www/demo3.starandstream.com
+            rsync -avz --delete public/ /data/nginx/www/demo3.starandstream.com/
+
+            CONF=nginx/conf.d/demo3.starandstream.com.conf
+            LIVE_CONF=/data/nginx/conf.d/demo3.starandstream.com.conf
+
+            # First deploy only: the full config references a certificate that
+            # doesn't exist yet, so nginx -t would fail. Install just the HTTP
+            # block (serves the ACME challenge), get the cert, then continue.
+            if [ ! -d "/data/certbot/conf/live/demo3.starandstream.com" ]; then
+                awk '1; /^}/ {exit}' "$CONF" > "$LIVE_CONF"
+                sudo -n nginx -t
+                sudo -n nginx -s reload
+                podman exec certbot certbot certonly --webroot -w /var/www/certbot \
+                    -d demo3.starandstream.com --non-interactive --agree-tos \
+                    -m contact@starandstream.com
+            fi
+
+            cp "$CONF" "$LIVE_CONF"
+
+            # Text-to-speech proxy on loopback port 3013 (3010-3012 are taken
+            # by alvin, cedarandsage and starandstream).
+            podman build -t demo3-voice-api:latest -f voice-api/Containerfile voice-api
+            podman rm -f demo3-voice 2>/dev/null || true
+            podman run -d --name demo3-voice \
+                --network nginx-net \
+                --restart always \
+                -p 127.0.0.1:3013:3000 \
+                --env-file /data/env/demo3.env \
+                demo3-voice-api:latest
+
+            sudo -n nginx -t
+            sudo -n nginx -s reload
+            echo "nginx reloaded"

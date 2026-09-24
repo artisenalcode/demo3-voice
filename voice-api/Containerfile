@@ -1,0 +1,14 @@
+# Text-to-speech proxy for demo3.starandstream.com. Keeps the OpenRouter key
+# server-side; nginx reaches it on a loopback-published port.
+FROM docker.io/oven/bun:1-alpine
+
+WORKDIR /app
+
+COPY package.json tsconfig.json ./
+COPY src ./src
+
+ENV PORT=3000
+EXPOSE 3000
+
+USER bun
+CMD ["bun", "run", "src/index.ts"]
