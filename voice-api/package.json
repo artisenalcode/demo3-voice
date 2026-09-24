@@ -9,6 +9,6 @@
     "test": "bun test"
   },
   "devDependencies": {
-    "bun-types": "^1.1.0"
+    "@types/bun": "latest"
   }
 }

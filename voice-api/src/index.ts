@@ -90,7 +90,6 @@ console.log(`voice-api listening on :${PORT} using ${MODEL}`)
 // otherwise `podman stop` waits 10 seconds and then kills it.
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
-    server.stop()
-    process.exit(0)
+    void server.stop().finally(() => process.exit(0))
   })
 }

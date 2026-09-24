@@ -1,0 +1,77 @@
+---
+import Speaker from '@/components/Speaker'
+import Layout from '@/layouts/Layout.astro'
+
+const steps = [
+  {
+    title: 'You type',
+    body: 'Up to 500 characters. Pick one of four English voices.'
+  },
+  {
+    title: 'Kokoro speaks',
+    body: 'Kokoro 82M through OpenRouter, about US$0.62 per million characters.'
+  },
+  {
+    title: 'Your browser remembers',
+    body: 'Each clip is cached on your device, so replaying unchanged text is instant and free.'
+  }
+]
+---
+
+<Layout
+  title="Chatterbox · Text to voice"
+  description="Type text, pick a voice and hear it spoken. A text-to-voice demo by Alvin Tolentino."
+>
+  <header class="mx-auto flex max-w-[1120px] items-center justify-between px-4 py-6 sm:px-10">
+    <a href="/" class="flex items-center gap-3 rounded-xl" aria-label="Chatterbox home">
+      <img src="/chatterbox-192.png" alt="" width="40" height="40" class="size-10" />
+      <span class="font-display text-xl font-semibold tracking-tight">Chatterbox</span>
+    </a>
+    <a
+      href="https://github.com/artisenalcode/demo3-voice"
+      class="rounded-lg px-3 py-2 text-base font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+    >
+      Source
+    </a>
+  </header>
+
+  <main class="mx-auto grid max-w-[1120px] gap-16 px-4 pb-20 sm:px-10">
+    <section class="grid gap-10 pt-6 lg:grid-cols-[38fr_62fr] lg:items-start lg:pt-12">
+      <div class="grid gap-4 lg:sticky lg:top-12">
+        <p class="text-xs font-semibold tracking-[0.12em] text-primary uppercase">Text to voice</p>
+        <h1 class="font-display text-2xl font-semibold sm:text-3xl">Type it.<br />Hear it.</h1>
+        <p class="max-w-[45ch] text-lg text-muted-foreground">
+          Chatterbox turns text into natural speech in about a second. Replay any clip instantly:
+          unchanged text never costs a second request.
+        </p>
+      </div>
+      <Speaker client:load />
+    </section>
+
+    <section aria-labelledby="how" class="grid gap-6">
+      <h2 id="how" class="font-display text-xl font-semibold">How it works</h2>
+      <ol class="grid gap-4 sm:grid-cols-3">
+        {
+          steps.map((step, i) => (
+            <li class="grid content-start gap-2 rounded-[20px] border bg-card p-6">
+              <span class="text-sm font-semibold text-primary">Step {i + 1}</span>
+              <h3 class="text-lg font-semibold">{step.title}</h3>
+              <p class="text-base text-muted-foreground">{step.body}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+  </main>
+
+  <footer class="border-t">
+    <div
+      class="mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:px-10"
+    >
+      <p>
+        Built by <a class="font-medium text-foreground underline-offset-4 hover:underline" href="https://alvin.starandstream.com">Alvin Tolentino</a> at <a class="font-medium text-foreground underline-offset-4 hover:underline" href="https://starandstream.com">Star and Stream</a>.
+      </p>
+      <p>Astro · React · shadcn/ui · Tailwind · Bun</p>
+    </div>
+  </footer>
+</Layout>

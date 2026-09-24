@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { DailyBudget, MAX_CHARS, RateLimiter, validateRequest } from './lib'
 
 describe('validateRequest', () => {

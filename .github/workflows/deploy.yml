@@ -11,13 +11,10 @@ jobs:
     steps:
       - name: Execute remote ssh commands to deploy
         uses: appleboy/ssh-action@v1.2.5
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: OPENROUTER_API_KEY
           script: |
             set -e
 
@@ -33,19 +30,24 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-            # The OpenRouter key comes from GitHub Secrets. Write it to a file
-            # only this user can read; podman loads it with --env-file, so it
-            # never lands in the image, the repo or the logs.
-            if [ -z "$OPENROUTER_API_KEY" ]; then
-                echo "OPENROUTER_API_KEY secret is missing" >&2
+            # Refresh the encrypted secrets store and render /data/env/*.env.
+            # The age private key exists only on this box, so GitHub Actions
+            # never handles the OpenRouter key.
+            export PATH="$HOME/.local/bin:$PATH"
+            git -C /data/secrets fetch --prune origin
+            git -C /data/secrets reset --hard origin/main
+            /data/secrets/render.sh /data/env
+            if ! grep -q '^OPENROUTER_API_KEY=.' /data/env/demo3.env 2>/dev/null; then
+                echo "OPENROUTER_API_KEY missing from /data/env/demo3.env; add it to the secrets store" >&2
                 exit 1
             fi
-            mkdir -p /data/env
-            ( umask 077 && printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY" > /data/env/demo3.env )
 
-            # Static site: no build step, just sync public/.
+            # Build the Astro site natively with Bun and sync it to nginx.
+            export PATH="$HOME/.bun/bin:$PATH"
+            bun install --frozen-lockfile
+            bun run build
             mkdir -p /data/nginx/www/demo3.starandstream.com
-            rsync -avz --delete public/ /data/nginx/www/demo3.starandstream.com/
+            rsync -avz --delete dist/ /data/nginx/www/demo3.starandstream.com/
 
             CONF=nginx/conf.d/demo3.starandstream.com.conf
             LIVE_CONF=/data/nginx/conf.d/demo3.starandstream.com.conf
@@ -62,7 +64,9 @@ jobs:
                     -m contact@starandstream.com
             fi
 
-            cp "$CONF" "$LIVE_CONF"
+            # Hash Astro's inline scripts into the CSP (fails the deploy if none
+            # are found, rather than shipping a CSP that blocks the page).
+            bun scripts/inject-csp-hashes.mjs "$CONF" "$LIVE_CONF"
 
             # Text-to-speech proxy on loopback port 3013 (3010-3012 are taken
             # by alvin, cedarandsage and starandstream).

@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+ * Chatterbox theme on Proportional Humanism.
+ * Components read semantic tokens only; the shadcn variables below are mapped
+ * onto them. Light-only theme. Contrast (checked):
+ *   ink #1F2430 on canvas #F6F4EF       ≈ 14.5:1
+ *   secondary #525866 on canvas         ≈ 6.6:1
+ *   accent #C2410C on canvas            ≈ 4.8:1  (text and focus ring)
+ *   on-accent #FCFBF8 on accent         ≈ 5.0:1
+ *   input border #8C8577 on raised      ≈ 3.6:1  (UI boundary ≥ 3:1)
+ */
+:root {
+  /* Semantic tokens */
+  --surface-canvas: #f6f4ef;
+  --surface-raised: #fcfbf8;
+  --surface-sunken: #eeeae1;
+  --text-primary: #1f2430;
+  --text-secondary: #525866;
+  --border-default: #d8d3c8;
+  --border-input: #8c8577;
+  --action-primary: #c2410c;
+  --action-primary-hover: #9a3412;
+  --action-on-primary: #fcfbf8;
+  --focus-ring: #c2410c;
+  --status-danger: #b42318;
+  --status-success: #166534;
+
+  /* shadcn/ui variables, mapped to the semantic tokens */
+  --background: var(--surface-canvas);
+  --foreground: var(--text-primary);
+  --card: var(--surface-raised);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--action-primary);
+  --primary-foreground: var(--action-on-primary);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--surface-sunken);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--status-danger);
+  --border: var(--border-default);
+  --input: var(--border-input);
+  --ring: var(--focus-ring);
+
+  /* Shape: radius-sm 8, radius-md 12, radius-lg 20 */
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-action-hover: var(--action-primary-hover);
+  --color-success: var(--status-success);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', ui-sans-serif, sans-serif;
+
+  /* Fixed type scale (size / line height) */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.625rem;
+  --text-xl--line-height: 2.125rem;
+  --text-2xl: 2.625rem;
+  --text-2xl--line-height: 3rem;
+  --text-3xl: 4.25rem;
+  --text-3xl--line-height: 4.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
