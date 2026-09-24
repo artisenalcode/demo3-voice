@@ -30,6 +30,8 @@ export default function Speaker() {
   const [isCached, setIsCached] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement>(null)
+  const audioCtx = useRef<AudioContext | null>(null)
+  const routed = useRef(new WeakSet<HTMLAudioElement>())
   const inFlight = useRef<AbortController | null>(null)
   const loadedKey = useRef<string | null>(null)
   const ids = { text: useId(), voice: useId(), hint: useId(), count: useId() }
@@ -57,7 +59,26 @@ export default function Speaker() {
     }
   }, [audioUrl])
 
-  useEffect(() => () => inFlight.current?.abort(), [])
+  useEffect(
+    () => () => {
+      inFlight.current?.abort()
+      void audioCtx.current?.close()
+    },
+    []
+  )
+
+  // Opening an audio output takes the device a moment. If that happens as the
+  // clip starts, the first word ("The") is lost on first play but not on
+  // replay. So open the output inside the click, before the audio arrives, and
+  // play through it. Must run synchronously in the gesture for Safari.
+  function warmUpAudio() {
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!Ctx) return
+    audioCtx.current ??= new Ctx()
+    audioCtx.current.resume().catch(() => {})
+  }
 
   function play(blob: Blob, key: string, fromCache: boolean) {
     setAudioUrl(URL.createObjectURL(blob))
@@ -70,14 +91,29 @@ export default function Speaker() {
   useEffect(() => {
     if (status.kind !== 'playing' || !audioRef.current) return
     const audio = audioRef.current
+    const ctx = audioCtx.current
+    // Route the player through the already-running context (once per element).
+    if (ctx && !routed.current.has(audio)) {
+      try {
+        ctx.createMediaElementSource(audio).connect(ctx.destination)
+        routed.current.add(audio)
+      } catch {
+        // Fall back to the element's own output.
+      }
+    }
     audio.currentTime = 0
-    audio.play().catch(() => {
-      // Autoplay can be blocked; the controls stay available.
-    })
+    const start = () =>
+      audio.play().catch(() => {
+        // Autoplay can be blocked; the controls stay available.
+      })
+    // Wait until the output is actually running before starting the clip.
+    if (ctx && ctx.state !== 'running') ctx.resume().then(start, start)
+    else void start()
   }, [status, audioUrl])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+    warmUpAudio()
     if (empty) return setStatus({ kind: 'error', message: 'Type some text to speak.' })
     if (tooLong) {
       return setStatus({ kind: 'error', message: `Keep it to ${MAX_CHARS} characters or fewer.` })
