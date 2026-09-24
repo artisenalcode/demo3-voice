@@ -3,9 +3,9 @@
 // audio really reaches the speaker, which clips the first word of a clip.
 
 /** Extra lead-in after the output is live, in seconds. */
-export const LEAD_IN_S = 0.15
+export const LEAD_IN_S = 0.5
 /** Never wait longer than this, so playback can't hang. */
-export const MAX_WAIT_MS = 800
+export const MAX_WAIT_MS = 1500
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
