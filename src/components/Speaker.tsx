@@ -13,6 +13,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { primeOutput, whenBuffered, whenOutputLive } from '@/lib/audio-ready'
 import { cacheKey, getCached, normaliseText, putCached } from '@/lib/tts-cache'
 import { DEFAULT_VOICE, MAX_CHARS, SAMPLE_TEXT, VOICES, type VoiceId } from '@/lib/voices'
 
@@ -78,6 +79,7 @@ export default function Speaker() {
     if (!Ctx) return
     audioCtx.current ??= new Ctx()
     audioCtx.current.resume().catch(() => {})
+    primeOutput(audioCtx.current)
   }
 
   function play(blob: Blob, key: string, fromCache: boolean) {
@@ -101,14 +103,22 @@ export default function Speaker() {
         // Fall back to the element's own output.
       }
     }
-    audio.currentTime = 0
-    const start = () =>
-      audio.play().catch(() => {
+    // Hold the first play until the clip is buffered and the output is really
+    // producing sound (longer on phones and Bluetooth); replays start at once.
+    let cancelled = false
+    void (async () => {
+      if (ctx && ctx.state !== 'running') await ctx.resume().catch(() => {})
+      await whenBuffered(audio)
+      if (ctx) await whenOutputLive(ctx)
+      if (cancelled) return
+      audio.currentTime = 0
+      await audio.play().catch(() => {
         // Autoplay can be blocked; the controls stay available.
       })
-    // Wait until the output is actually running before starting the clip.
-    if (ctx && ctx.state !== 'running') ctx.resume().then(start, start)
-    else void start()
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [status, audioUrl])
 
   async function handleSubmit(event: React.FormEvent) {

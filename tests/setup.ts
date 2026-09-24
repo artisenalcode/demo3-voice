@@ -5,7 +5,11 @@ import { afterEach, vi } from 'vite-plus/test'
 // Globals are off, so Testing Library can't register its own cleanup.
 afterEach(() => cleanup())
 
-// jsdom has no media playback or object URLs.
+// happy-dom has no media playback or object URLs; report clips as fully buffered.
+Object.defineProperty(HTMLMediaElement.prototype, 'readyState', {
+  configurable: true,
+  get: () => 4
+})
 Object.defineProperty(HTMLMediaElement.prototype, 'play', {
   configurable: true,
   value: vi.fn().mockResolvedValue(undefined)

@@ -44,7 +44,7 @@ describe('Speaker', () => {
       text: 'The quick brown fox jumps over the lazy dog.',
       voice: 'bf_alice'
     })
-    expect(playMock).toHaveBeenCalled()
+    await waitFor(() => expect(playMock).toHaveBeenCalled())
 
     await user.click(await screen.findByRole('button', { name: 'Replay' }))
     await screen.findByText('Playing from your device. No new request.')
